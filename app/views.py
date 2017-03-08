@@ -16,6 +16,7 @@ from instagram import client
 from instagram.helper import timestamp_to_datetime, datetime_to_timestamp
 from instagram.bind import InstagramClientError, InstagramAPIError
 
+from hashing import make_secure
 
 @lm.user_loader
 def load_user(user_id):
@@ -56,7 +57,7 @@ def login():
         flask.session.pop('username', None)
         login_user(user, remember)
         print 'logged in successful'
-        return flask.redirect(flask.url_for('index'))
+        return flask.redirect(flask.url_for('root'))
     else:
         try:
             unauthenticated_api = client.InstagramAPI(client_id=app.config['client_id'],
@@ -76,6 +77,21 @@ def logout():
 
 
 @app.route('/')
+@login_required
+def root():
+    message = ""
+    if flask.g.user and flask.g.user.is_authenticated:
+        if flask.g.user.chat_id:
+            message = "You are already registered."
+        else:
+            message = "Send this to @teleinstantbot in telegram:\n" + \
+                      "<b>" + \
+                      "/register " + \
+                      make_secure(str(flask.g.user.user_id))
+    return message
+
+
+@app.route('/index')
 @login_required
 def index():
     content = "<h2>User Recent Media</h2>"
@@ -109,7 +125,7 @@ def index():
         content += ''.join(photos)
 
     except InstagramClientError as e:
-        print "client exception: ",e
+        print "client exception: ", e
         return "error"
     except InstagramAPIError as e:
         print "api exception: ", e

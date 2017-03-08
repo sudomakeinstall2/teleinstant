@@ -21,6 +21,7 @@ class User(db.Model):
     insta_id = db.Column(db.String(120), unique=True)
     insta_name = db.Column(db.String(120), unique=True)
     access_token = db.Column(db.Text)
+    chat_id = db.Column(db.String(120), unique=True)
 
     @property
     def is_authenticated(self):
