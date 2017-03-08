@@ -1,0 +1,5 @@
+*.pyc
+.idea/
+app/app.db
+app/client_secrets.json
+app/secret_key.txt
