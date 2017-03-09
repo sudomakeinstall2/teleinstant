@@ -71,12 +71,32 @@ def logout():
     return flask.redirect(flask.url_for('login'))
 
 
+@app.route('/')
+def index():
+    msg = """
+    <h2>teleinstant</h2>
+    <p>
+    Using a telegram bot this application will notify you when there is new media in your feed
+    by sending a low resolution image to your telegram account.
+    </p>
+    <p>
+    In order to start you just have to send <b>/start</b> to <a href="http://t.me/teleinstantbot">
+    teleinstant</a>.
+    </p>
+    <p>
+    You can read our <a href="/privacy">pirvacy policy</a> and study our 
+    <a href=https://github.com/sudomakeinstall2/teleinstant>code</a>.
+    </p>
+    """
+    return msg
+
+
 @app.route('/privacy')
 def privacy():
     msg = """
     <h2> Privacy Policy </h2>
     <p>
-    You don't have to take our word on this. <a href="http://t.me/teleinstant">teleinstant</a>
+    You don't have to take our word on this. <a href="http://t.me/teleinstantbot">teleinstant</a>
     is an <a href=https://github.com/sudomakeinstall2/teleinstant>open-source</a> application. Anyone can study and use it on their own server.
     </p>
 
