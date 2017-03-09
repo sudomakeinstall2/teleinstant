@@ -2,8 +2,13 @@ import sys
 import time
 import telepot
 import os
+import json
+import logging
+import base64
 
-from app import db
+from telepot.namedtuple import InlineKeyboardMarkup
+
+from app import db, app
 
 from app.models import User
 
@@ -11,7 +16,8 @@ from app.hashing import check_secure_val
 
 from app.daemon import Daemon
 
-import logging
+
+from instagram import client
 
 logging.basicConfig(format='%(asctime)s %(message)s',
                     level=logging.INFO,
@@ -46,7 +52,18 @@ class RegisterDaemon(Daemon):
 
         if content_type == 'text':
             if msg['text'] == '/start':
-                self.bot.sendMessage(chat_id, 'http://robotoos.ir:9000/login')
+                unauthenticated_api = client.InstagramAPI(client_id=app.config['client_id'],
+                                                          client_secret=app.config['client_secret'],
+                                                          redirect_uri=app.config['redirect_uri'])
+                state = json.dumps({'chat_id':chat_id})
+                b64state = base64.b64encode(state)
+                url = unauthenticated_api.get_authorize_url(scope=["basic", "follower_list"])
+                url += "&state=%s"%(b64state)
+                logging.info("url: %s",url)
+                markup = InlineKeyboardMarkup(inline_keyboard=[
+                    [dict(text='Authorize me', url=url)]
+                ])
+                self.bot.sendMessage(chat_id, 'You should login',reply_markup=markup)
             elif msg['text'].split(' ')[0] == '/register':
                 if len(msg['text'].split(' ')) != 2:
                     self.bot.sendMessage(chat_id, 'you need to send your registeration code')

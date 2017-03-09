@@ -1,4 +1,6 @@
 import datetime
+import base64
+import json
 
 from app import app, db, lm
 
@@ -30,10 +32,7 @@ def before_request():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if flask.g.user is not None and flask.g.user.is_authenticated and 'access_token' not in flask.session:
-        print 'we know the user'
-        return flask.redirect(flask.url_for('index'))
-    elif 'access_token' in flask.session and 'username' in flask.session:
+    if 'access_token' in flask.session and 'username' in flask.session:
         print 'access_token is in session'
         username = flask.session['username']
         user = User.query.filter_by(insta_name=username).first()
@@ -47,6 +46,8 @@ def login():
             user.insta_name = username
             user.insta_id = flask.session['insta_id']
             user.access_token = flask.session['access_token']
+            d = json.loads(base64.b64decode(flask.session['state']))
+            user.chat_id = d['chat_id']
             db.session.add(user)
             db.session.commit()
             UpdateFollowerListThread(user.insta_id).start()
@@ -55,18 +56,8 @@ def login():
         flask.session.pop('remember_me', None)
         flask.session.pop('access_token', None)
         flask.session.pop('username', None)
-        login_user(user, remember)
-        print 'logged in successful'
-        return flask.redirect(flask.url_for('root'))
-    else:
-        try:
-            unauthenticated_api = client.InstagramAPI(client_id=app.config['client_id'],
-                                                      client_secret=app.config['client_secret'],
-                                                      redirect_uri=app.config['redirect_uri'])
-            url = unauthenticated_api.get_authorize_url(scope=["basic", "follower_list"])
-            return flask.redirect(url)
-        except Exception as e:
-            print(e)
+        return """ Connected Successfuly <script> window.close();</script>"""
+    
 
 
 @app.route('/logout')
@@ -141,8 +132,11 @@ def callback():
 @app.route('/oauthcallback')
 def oauth2callback():
     code = flask.request.args.get('code')
+    state = flask.request.args.get('state')
     if not code:
         return 'Missing code'
+    if not state:
+        return 'Missing state'
     try:
         unauthenticated_api = client.InstagramAPI(client_id=app.config['client_id'],
                                                   client_secret=app.config['client_secret'],
@@ -153,6 +147,7 @@ def oauth2callback():
         flask.session['access_token'] = access_token
         flask.session['username'] = user_info['username']
         flask.session['insta_id'] = user_info['id']
+        flask.session['state'] = state
         return flask.redirect(flask.url_for('login'))
     except Exception as e:
         print "exception: ", e

@@ -1,3 +1,5 @@
+from httplib2 import ServerNotFoundError
+
 import telepot
 
 import time, sys, datetime
@@ -70,6 +72,8 @@ class UpdateDaemon(Daemon):
                     logging.error("client exception: %r", e)
                 except InstagramAPIError as e:
                     logging.error("api exception: %r", e)
+                except ServerNotFoundError as e:
+                    logging.error("server not found error: %r", e)
 
             logging.info("sleeping")
             sys.stdout.flush()
