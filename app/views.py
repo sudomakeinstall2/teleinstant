@@ -59,7 +59,7 @@ def login():
         flask.session.pop('access_token', None)
         flask.session.pop('username', None)
         # return """ Connected Successfuly <script> window.close();</script>"""
-        return flask.url_for('privacy')
+        return flask.redirect(flask.url_for('privacy'))
     else:
         return flask.redirect("http://t.me/teleinstantbot", code=302)
 
