@@ -10,7 +10,7 @@ import flask
 
 from models import User, UserLink
 
-from utils import UpdateFollowerListThread
+from utils import UpdateFollowerListThread, SendMessageThread
 
 from oauth2client import client
 
@@ -52,12 +52,16 @@ def login():
             db.session.commit()
             UpdateFollowerListThread(user.insta_id).start()
 
-        remember = False
-        flask.session.pop('remember_me', None)
+        SendMessageThread("Connected Successfully", user.chat_id).start()
+        # remember = False
+        # flask.session.pop('remember_me', None)
+        flask.session.pop('state', None)
         flask.session.pop('access_token', None)
         flask.session.pop('username', None)
-        return """ Connected Successfuly <script> window.close();</script>"""
-    
+        # return """ Connected Successfuly <script> window.close();</script>"""
+        return flask.url_for('privacy')
+    else:
+        return flask.redirect("http://t.me/teleinstantbot", code=302)
 
 
 @app.route('/logout')
@@ -67,66 +71,37 @@ def logout():
     return flask.redirect(flask.url_for('login'))
 
 
-@app.route('/')
-@login_required
-def root():
-    message = ""
-    if flask.g.user and flask.g.user.is_authenticated:
-        if flask.g.user.chat_id:
-            message = "You are already registered."
-        else:
-            message = "Send this to @teleinstantbot in telegram:\n" + \
-                      "<b>" + \
-                      "/register " + \
-                      make_secure(str(flask.g.user.user_id))
-    return message
+@app.route('/privacy')
+def privacy():
+    msg = """
+    <h2> Privacy Policy </h2>
+    <p>
+    You don't have to take our word on this. <a href="http://t.me/teleinstant">teleinstant</a>
+    is an <a href=https://github.com/sudomakeinstall2/teleinstant>open-source</a> application. Anyone can study and use it on their own server.
+    </p>
+
+    <h4> Sharing Data </h4>
+    <p>
+    We never share your data with anyone.
+    </p>
+
+    <h4> Storing Data </h4>
+    <p>
+    We only store the data we need to function properly. Including telegram's <i>chat_id</i>,
+     instagram's <i>id</i>, <i>username</i> and <i>follower_list</i>. We never store your photos,
+      comments or anything else.
+    </p>
+
+    <h4> Revoking Access </h4>
+    <p>
+    You can revoke your access anytime you want by going <a href="https://www.instagram.com/accounts/manage_access/">
+    here</a>.
+    </p>
+    """
+    return msg
 
 
-@app.route('/index')
-@login_required
-def index():
-    content = "<h2>User Recent Media</h2>"
-    access_token = flask.g.user.access_token
-    try:
-        api = client.InstagramAPI(access_token=access_token,
-                                  client_secret=app.config['client_secret'],
-                                  client_id=app.config['client_id'])
 
-        photos = []
-        follows = UserLink.query.filter_by(from_insta_id=flask.g.user.insta_id)
-
-        for fol in follows:
-            curtime = datetime.datetime.utcnow()
-            print curtime
-            recent_media, next_ = api.user_recent_media(user_id=fol.to_insta_id)
-            for media in recent_media:
-                if media.created_time < timestamp_to_datetime(fol.previous):
-                    continue
-                photos.append('<div style="float:left;">')
-                if media.type == 'video':
-                    photos.append('<video controls width height="150"><source type="video/mp4" src="%s"/></video>' % (
-                        media.get_standard_resolution_url()))
-                else:
-                    photos.append('<img src="%s"/>' % (media.get_thumbnail_url()))
-                photos.append(
-                    "<br/> <a href='/media_like/%s'>Like</a>  <a href='/media_unlike/%s'>Un-Like</a>  LikesCount=%s Created=%s</div>" % (
-                        media.id, media.id, media.like_count, media.created_time))
-            fol.previous = datetime_to_timestamp(curtime)
-            db.session.commit()
-        content += ''.join(photos)
-
-    except InstagramClientError as e:
-        print "client exception: ", e
-        return "error"
-    except InstagramAPIError as e:
-        print "api exception: ", e
-        return "error"
-    return content
-
-
-@app.route('/callback')
-def callback():
-    return flask.request.args.get('code')
 
 
 @app.route('/oauthcallback')

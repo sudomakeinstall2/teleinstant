@@ -1,6 +1,8 @@
 import threading
-
+import os
 import datetime
+import telepot
+
 from instagram.helper import datetime_to_timestamp
 
 from models import User, UserLink
@@ -9,7 +11,21 @@ from instagram import client
 
 from app import db, app
 
+basedir = os.path.abspath(os.path.dirname(__file__))
 
+class SendMessageThread(threading.Thread):
+    def __init__(self, msg, chat_id):
+        super(SendMessageThread, self).__init__()
+        self.msg = msg
+        self.chat_id = chat_id
+        with open(os.path.join(basedir, '..', 'bot_token.txt'), 'r') as f:
+            bot_token = f.read().strip()
+            self.bot = telepot.Bot(bot_token)
+
+    def run(self):
+        self.bot.sendMessage(self.chat_id, self.msg)
+
+        
 class UpdateFollowerListThread(threading.Thread):
     def __init__(self, insta_id):
         super(UpdateFollowerListThread, self).__init__()
